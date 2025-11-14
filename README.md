@@ -47,3 +47,16 @@
 3. Update the module name in go.mod (IDE can help refactor the code accordingly)
 
 4. Enjoy developing!
+
+## Development notes
+
+### Database-related
+
+#### sqlc
+
+- You should write your queries in `internal/db/sqlc/queries/`
+- Generate Go code from SQL with `sqlc generate -f internal/db/sqlc/sqlc.yaml`
+
+#### Migrations with goose
+
+- Create migrations with `goose -dir internal/db/migrations create -s {migration_name} sql`

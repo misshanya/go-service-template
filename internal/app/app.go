@@ -5,17 +5,17 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
+	"time"
+
 	"go-service-template/internal/config"
 	"go-service-template/internal/db"
 	"go-service-template/internal/db/sqlc/storage"
-	"log/slog"
-	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"github.com/valkey-io/valkey-go"
 
 	userrepo "go-service-template/internal/repository/user"
 	userservice "go-service-template/internal/service/user"
@@ -23,11 +23,10 @@ import (
 )
 
 type App struct {
-	cfg          *config.Config
-	l            *slog.Logger
-	e            *echo.Echo
-	valkeyClient valkey.Client
-	dbPool       *pgxpool.Pool
+	cfg    *config.Config
+	l      *slog.Logger
+	e      *echo.Echo
+	dbPool *pgxpool.Pool
 }
 
 // New creates and initializes a new instance of App

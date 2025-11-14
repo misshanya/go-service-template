@@ -1,0 +1,36 @@
+volumes:
+  pg_data:
+
+services:
+  service:
+    container_name: backend
+    build:
+      context: .
+    ports:
+      - "${SERVER_PORT}:8080"
+    environment:
+      SERVER_ADDR: "0.0.0.0:8080"
+
+      POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+      POSTGRES_MAX_CONNS: "${POSTGRES_MAX_CONNS}"
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    container_name: backend_postgres
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER}"
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD}"
+      POSTGRES_DB: "${POSTGRES_DB}"
+    volumes:
+      - pg_data:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s

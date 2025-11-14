@@ -7,25 +7,25 @@
 
 ```
 .
-├── cmd
+├── cmd/
 │   └── main.go - entry point for the whole application, loads a config, creates an app and manages its lifecycle
 ├── internal
-│   ├── app
+│   ├── app/
 │   │   └── app.go - initialization of all components
-│   ├── config
+│   ├── config/
 │   │   └── config.go - config structs and loading from .env
-│   ├── db
+│   ├── db/
 │   │   ├── migrate.go - simple function to migrate db
 │   │   ├── migrations/ - there would be your migrations
 │   │   └── sqlc/ - sqlc config and queries
 │   ├── errorz/ - domain-level errors
 │   ├── models/ - domain-level models
-│   ├── repository - storage, repo level
-│   ├── service - use-case, business-logic and whatever else it's called
-│   └── transport - top-level transport communications
-│       └── http - specifically http transport
-├── pkg
-│   └── dberrors - some sugar for db errors processing
+│   ├── repository/ - storage, repo level
+│   ├── service/ - use-case, business-logic and whatever else it's called
+│   └── transport/ - top-level transport communications
+│       └── http/ - specifically http transport
+├── pkg/
+│   └── dberrors/ - some sugar for db errors processing
 │       └── is_unique_violation.go
 ```
 

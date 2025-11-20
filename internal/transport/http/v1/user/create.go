@@ -10,6 +10,19 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Create handles the creation of a user
+//
+//	@Summary		Create a new user
+//	@Description	Creates a new user
+//	@Tags			user
+//	@Accept			json
+//	@Produce		json
+//	@Param			request	body		dto.UserCreateRequest	true	"User data"
+//	@Success		201		{object}	dto.UserCreateResponse
+//	@Failure		400		{object}	dto.HTTPStatus	"Invalid request body"
+//	@Failure		409		{object}	dto.HTTPStatus	"User already exists"
+//	@Failure		500		{object}	dto.HTTPStatus	"Internal server error"
+//	@Router			/user [post]
 func (h *handler) Create(c echo.Context) error {
 	var body dto.UserCreateRequest
 	if err := c.Bind(&body); err != nil {

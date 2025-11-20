@@ -1,0 +1,69 @@
+basePath: /api/v1
+definitions:
+  dto.HTTPStatus:
+    properties:
+      code:
+        type: integer
+      message:
+        type: string
+    type: object
+  dto.UserCreateRequest:
+    properties:
+      age:
+        type: integer
+      username:
+        type: string
+    required:
+    - age
+    - username
+    type: object
+  dto.UserCreateResponse:
+    properties:
+      age:
+        type: integer
+      id:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8097
+info:
+  contact: {}
+  title: Go Template
+  version: "1.0"
+paths:
+  /user:
+    post:
+      consumes:
+      - application/json
+      description: Creates a new user
+      parameters:
+      - description: User data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/dto.UserCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/dto.UserCreateResponse'
+        "400":
+          description: Invalid request body
+          schema:
+            $ref: '#/definitions/dto.HTTPStatus'
+        "409":
+          description: User already exists
+          schema:
+            $ref: '#/definitions/dto.HTTPStatus'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/dto.HTTPStatus'
+      summary: Create a new user
+      tags:
+      - user
+swagger: "2.0"

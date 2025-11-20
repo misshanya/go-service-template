@@ -60,3 +60,8 @@
 #### Migrations with goose
 
 - Create migrations with `goose -dir internal/db/migrations create -s {migration_name} sql`
+
+#### Swagger docs
+
+- Generate docs with `swag init -g cmd/main.go`
+- Format comments with `swag fmt`

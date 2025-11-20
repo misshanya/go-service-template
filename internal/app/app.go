@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"time"
 
 	"go-service-template/internal/config"
@@ -16,10 +17,13 @@ import (
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	echoSwagger "github.com/swaggo/echo-swagger"
 
 	userrepo "go-service-template/internal/repository/user"
 	userservice "go-service-template/internal/service/user"
 	userhandler "go-service-template/internal/transport/http/v1/user"
+
+	_ "go-service-template/docs"
 )
 
 type App struct {
@@ -148,4 +152,8 @@ func (a *App) initEcho() {
 		},
 	}))
 	a.e.Use(middleware.Recover())
+	a.e.GET("/api/v1/docs/*", echoSwagger.WrapHandler)
+	a.e.GET("/api/v1/docs", func(c echo.Context) error {
+		return c.Redirect(http.StatusMovedPermanently, "/api/v1/docs/index.html")
+	})
 }

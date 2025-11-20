@@ -11,6 +11,10 @@ import (
 	"time"
 )
 
+// @title		Go Template
+// @version	1.0
+// @BasePath	/api/v1
+// @host		localhost:8097
 func main() {
 	logger := setupLogger()
 

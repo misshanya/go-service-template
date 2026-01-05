@@ -57,7 +57,7 @@
 
 ### Infrastructure
 
-- Use required connectors in `internal/app/app.go` and remove unused ones
+- Use required connectors in `internal/app/app.go` and remove unused ones  
   Uncomment or remove corresponding services in compose
 
 ### Database-related

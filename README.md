@@ -1,7 +1,12 @@
 # Go Service Template
 
-- Using **Echo** and **PostgreSQL**, with **pgx/v5**, **sqlc** and **goose**
-- Dockerfile optimized with build cache
+## Tech stack
+
+- [Echo](https://echo.labstack.com)
+- PostgreSQL with [pgx/v5](https://github.com/jackc/pgx), [sqlc](https://sqlc.dev) and [goose](https://github.com/pressly/goose)
+- S3 with [AWS SDK](https://github.com/aws/aws-sdk-go-v2) ([RustFS](https://rustfs.com) included in compose)
+- Valkey
+- Kafka with [segmentio/kafka-go](https://github.com/segmentio/kafka-go)
 
 ## Structure
 
@@ -46,9 +51,14 @@
    
 3. Update the module name in go.mod (IDE can help refactor the code accordingly)
 
-4. Enjoy developing!
+4. Enjoy developing! (don't forget to read dev notes)
 
 ## Development notes
+
+### Infrastructure
+
+- Use required connectors in `internal/app/app.go` and remove unused ones
+  Uncomment or remove corresponding services in compose
 
 ### Database-related
 

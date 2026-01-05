@@ -9,6 +9,15 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
+
+	"github.com/valkey-io/valkey-go"
+
+	"github.com/segmentio/kafka-go"
+
 	"go-service-template/internal/config"
 	"go-service-template/internal/db"
 	"go-service-template/internal/db/sqlc/storage"
@@ -27,10 +36,14 @@ import (
 )
 
 type App struct {
-	cfg    *config.Config
-	l      *slog.Logger
-	e      *echo.Echo
-	dbPool *pgxpool.Pool
+	cfg          *config.Config
+	l            *slog.Logger
+	e            *echo.Echo
+	dbPool       *pgxpool.Pool
+	s3Client     *s3.Client
+	kafkaWriter  *kafka.Writer
+	kafkaReader  *kafka.Reader
+	valkeyClient valkey.Client
 }
 
 // New creates and initializes a new instance of App
@@ -39,6 +52,8 @@ func New(ctx context.Context, cfg *config.Config, l *slog.Logger) (*App, error) 
 		cfg: cfg,
 		l:   l,
 	}
+
+	// Your needed connectors below (db, cache, storage, message broker, etc.)
 
 	if err := a.initDB(ctx); err != nil {
 		return nil, err
@@ -156,4 +171,65 @@ func (a *App) initEcho() {
 	a.e.GET("/api/v1/docs", func(c echo.Context) error {
 		return c.Redirect(http.StatusMovedPermanently, "/api/v1/docs/index.html")
 	})
+}
+
+// initS3 creates an S3 client and tries to create bucket in the storage
+func (a *App) initS3(ctx context.Context) error {
+	cfg := aws.Config{
+		Region:       a.cfg.S3.Region,
+		BaseEndpoint: aws.String(a.cfg.S3.Endpoint),
+		Credentials: aws.NewCredentialsCache(
+			credentials.NewStaticCredentialsProvider(
+				a.cfg.S3.AccessKey,
+				a.cfg.S3.SecretKey,
+				""),
+		),
+	}
+
+	a.s3Client = s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.UsePathStyle = true
+	})
+
+	_, err := a.s3Client.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(a.cfg.S3.BucketName),
+	})
+	if err != nil {
+		var apiError smithy.APIError
+		if errors.As(err, &apiError) && apiError.ErrorCode() == "BucketAlreadyOwnedByYou" {
+			return nil
+		}
+		return fmt.Errorf("failed to create s3 bucket: %w", err)
+	}
+
+	return nil
+}
+
+// initKafkaWriter creates a new Kafka writer with the auto topic creation allowed
+func (a *App) initKafkaWriter() {
+	a.kafkaWriter = &kafka.Writer{
+		Addr:                   kafka.TCP(a.cfg.Kafka.Addr),
+		AllowAutoTopicCreation: true,
+	}
+}
+
+// initKafkaReader creates a new Kafka reader
+func (a *App) initKafkaReader() {
+	a.kafkaReader = kafka.NewReader(kafka.ReaderConfig{
+		Brokers:     []string{a.cfg.Kafka.Addr},
+		GroupID:     a.cfg.Kafka.ReaderGroupID,
+		GroupTopics: []string{a.cfg.Kafka.Topic},
+	})
+}
+
+// initValkey sets up a connection to cache
+func (a *App) initValkey() error {
+	client, err := valkey.NewClient(valkey.ClientOption{
+		InitAddress: []string{a.cfg.Valkey.Addr},
+		Password:    a.cfg.Valkey.Password,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to init Valkey connection: %w", err)
+	}
+	a.valkeyClient = client
+	return nil
 }

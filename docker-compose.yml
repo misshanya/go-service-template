@@ -1,5 +1,7 @@
 volumes:
   pg_data:
+#  rustfs_data:
+#  kafka_data:
 
 services:
   service:
@@ -13,6 +15,19 @@ services:
 
       POSTGRES_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
       POSTGRES_MAX_CONNS: "${POSTGRES_MAX_CONNS}"
+
+#      S3_REGION: "us-east-1"
+#      S3_ENDPOINT: "http://rustfs:9000"
+#      S3_ACCESS_KEY: "${RUSTFS_ACCESS_KEY}"
+#      S3_SECRET_KEY: "${RUSTFS_SECRET_KEY}"
+#      S3_BUCKET_NAME: "${RUSTFS_BUCKET_NAME}"
+#
+#      KAFKA_ADDR: "kafka:9093"
+#      KAFKA_READER_GROUP_ID: "${KAFKA_READER_GROUP_ID}"
+#      KAFKA_TOPIC: "${KAFKA_TOPIC}"
+
+#      VALKEY_ADDR: "valkey:6379"
+#      VALKEY_PASSWORD: "${VALKEY_PASSWORD}"
     restart: unless-stopped
     depends_on:
       postgres:
@@ -34,3 +49,81 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+#  rustfs:
+#    container_name: backend_rustfs
+#    image: rustfs/rustfs:1.0.0-alpha.78
+#    restart: unless-stopped
+#    ports:
+#      - "9001:9001"
+#    environment:
+#      RUSTFS_ACCESS_KEY: "${RUSTFS_ACCESS_KEY}"
+#      RUSTFS_SECRET_KEY: "${RUSTFS_SECRET_KEY}"
+#    volumes:
+#      - rustfs_data:/data
+#    healthcheck:
+#      test:
+#        [
+#          "CMD",
+#          "sh", "-c",
+#          "curl -f http://localhost:9000/health && curl -f http://localhost:9001/rustfs/console/health"
+#        ]
+#      interval: 30s
+#      timeout: 10s
+#      retries: 3
+#      start_period: 40s
+#
+#  valkey:
+#    container_name: backend_valkey
+#    image: valkey/valkey:9-alpine
+#    restart: unless-stopped
+#    environment:
+#      VALKEY_PASSWORD: "${VALKEY_PASSWORD}"
+#    healthcheck:
+#      test: [ "CMD-SHELL", "valkey-cli -p 6379 ping | grep PONG" ]
+#      interval: 1s
+#      timeout: 3s
+#      retries: 5
+#
+#  kafka:
+#    container_name: backend_kafka
+#    image: confluentinc/cp-kafka:8.0.3
+#    restart: unless-stopped
+#    volumes:
+#      - kafka_data:/var/lib/kafka/data
+#    environment:
+#      - KAFKA_NODE_ID=0
+#      - KAFKA_PROCESS_ROLES=controller,broker
+#      - KAFKA_CONTROLLER_QUORUM_VOTERS=0@127.0.0.1:9094
+#      - KAFKA_LISTENERS=PLAINTEXT://:9093,EXTERNAL://:9092,CONTROLLER://:9094
+#      - KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9093,EXTERNAL://localhost:9092
+#      - KAFKA_CONTROLLER_LISTENER_NAMES=CONTROLLER
+#      - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+#      - KAFKA_AUTO_CREATE_TOPICS_ENABLE=true
+#      - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+#      - CLUSTER_ID="yurOlwKXTsaSaosPMiBZ-w" # generate new or use your cluster id
+#    healthcheck:
+#      test: [ "CMD-SHELL", "/bin/kafka-topics --bootstrap-server 127.0.0.1:9093 --list" ]
+#      interval: 15s
+#      timeout: 10s
+#      retries: 10
+#      start_period: 20s
+#
+#  kafka-init:
+#    container_name: backend_kafka-init
+#    image: confluentinc/cp-kafka:8.0.3
+#    environment:
+#      KAFKA_TOPIC: ${KAFKA_TOPIC}
+#    entrypoint:
+#      - /bin/sh
+#      - -c
+#      - |
+#        kafka-topics --bootstrap-server kafka:9093 \
+#        --create \
+#        --if-not-exists \
+#        --topic $$KAFKA_TOPIC \
+#        --replication-factor 1 \
+#        --partitions 1
+#    depends_on:
+#      kafka:
+#        condition: service_healthy

@@ -4,12 +4,17 @@ WORKDIR /app
 
 COPY go.mod go.sum ./
 
-RUN go mod download
+ENV GOMODCACHE=/go/pkg/mod
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download
 
 COPY . .
 
 ENV GOCACHE=/root/.cache/go-build
-RUN --mount=type=cache,target="/root/.cache/go-build" go build -o service ./cmd/
+ENV CGO_ENABLED=0
+RUN --mount=type=cache,target="/root/.cache/go-build" \
+    --mount=type=cache,target="/go/pkg/mod" \
+    go build -ldflags="-s -w" -o service ./cmd/
 
 FROM scratch AS runner
 

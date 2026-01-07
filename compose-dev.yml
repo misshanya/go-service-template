@@ -1,5 +1,7 @@
 volumes:
   pg_data:
+#  rustfs_data:
+#  kafka_data:
 
 services:
   service:

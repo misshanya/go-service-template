@@ -2,7 +2,7 @@
 
 ## Tech stack
 
-- [Echo](https://echo.labstack.com)
+- [Echo](https://echo.labstack.com) with oapi-codegen
 - PostgreSQL with [pgx/v5](https://github.com/jackc/pgx), [sqlc](https://sqlc.dev) and [goose](https://github.com/pressly/goose)
 - S3 with [AWS SDK](https://github.com/aws/aws-sdk-go-v2) ([RustFS](https://rustfs.com) included in compose)
 - Valkey
@@ -12,6 +12,8 @@
 
 ```
 .
+├── api/
+│   └── openapi.yaml - OpenAPI spec for the service, used for code generation and docs
 ├── cmd/
 │   └── main.go - entry point for the whole application, loads a config, creates an app and manages its lifecycle
 ├── internal
@@ -75,5 +77,4 @@
 
 #### Swagger docs
 
-- Generate docs with `swag init -g cmd/main.go`
-- Format comments with `swag fmt`
+- Generate code from OpenAPI spec with `oapi-codegen -config oapi-codegen.yml api/openapi.yaml`

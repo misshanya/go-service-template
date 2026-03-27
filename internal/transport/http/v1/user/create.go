@@ -1,67 +1,35 @@
 package user
 
 import (
+	"context"
 	"errors"
 	"go-service-template/internal/errorz"
 	"go-service-template/internal/models"
-	"go-service-template/internal/transport/http/dto"
-	"net/http"
-
-	"github.com/labstack/echo/v4"
+	v1 "go-service-template/internal/transport/http/v1"
 )
 
-// Create handles the creation of a user
-//
-//	@Summary		Create a new user
-//	@Description	Creates a new user
-//	@Tags			user
-//	@Accept			json
-//	@Produce		json
-//	@Param			request	body		dto.UserCreateRequest	true	"User data"
-//	@Success		201		{object}	dto.UserCreateResponse
-//	@Failure		400		{object}	dto.HTTPStatus	"Invalid request body"
-//	@Failure		409		{object}	dto.HTTPStatus	"User already exists"
-//	@Failure		500		{object}	dto.HTTPStatus	"Internal server error"
-//	@Router			/user [post]
-func (h *handler) Create(c echo.Context) error {
-	var body dto.UserCreateRequest
-	if err := c.Bind(&body); err != nil {
-		return c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		})
+func (h *UserHandler) RegisterUser(ctx context.Context, req v1.RegisterUserRequestObject) (v1.RegisterUserResponseObject, error) {
+	input := &models.CreateUser{
+		Username:       req.Body.Username,
+		Password:       req.Body.Password,
+		HashedPassword: req.Body.Password,
+		Role:           "user",
 	}
-
-	if err := h.validator.Struct(body); err != nil {
-		return c.JSON(http.StatusBadRequest, &dto.HTTPStatus{
-			Code:    http.StatusBadRequest,
-			Message: err.Error(),
-		})
-	}
-
-	u := &models.User{
-		Username: body.Username,
-		Age:      body.Age,
-	}
-	user, err := h.service.Create(c.Request().Context(), u)
+	u, token, err := h.svc.Create(ctx, input)
 	if err != nil {
-		if errors.Is(err, errorz.UserAlreadyExists) {
-			return c.JSON(http.StatusConflict, &dto.HTTPStatus{
-				Code:    http.StatusConflict,
-				Message: err.Error(),
-			})
+		if errors.Is(err, errorz.ErrUserAlreadyExists) {
+			return v1.RegisterUser409JSONResponse{
+				ConflictJSONResponse: v1.ConflictJSONResponse{
+					Message: "user with the given username already exists",
+					Code:    "USER_ALREADY_EXISTS",
+				},
+			}, nil
 		}
-
-		return c.JSON(http.StatusInternalServerError, &dto.HTTPStatus{
-			Code:    http.StatusInternalServerError,
-			Message: errorz.InternalServerError.Error(),
-		})
+		return nil, err
 	}
 
-	resp := &dto.UserCreateResponse{
-		ID:       user.ID,
-		Username: user.Username,
-		Age:      user.Age,
-	}
-	return c.JSON(http.StatusCreated, resp)
+	return v1.RegisterUser201JSONResponse{
+		User:  toV1User(u),
+		Token: token,
+	}, nil
 }

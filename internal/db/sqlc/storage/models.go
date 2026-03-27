@@ -11,5 +11,6 @@ import (
 type User struct {
 	ID       uuid.UUID
 	Username string
-	Age      int32
+	Password string
+	Role     string
 }

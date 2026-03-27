@@ -5,8 +5,14 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"go-service-template/internal/errorz"
+	"go-service-template/internal/jwt"
+	"go-service-template/internal/transport/http/server"
+	v1 "go-service-template/internal/transport/http/v1"
+	swaggerui "go-service-template/pkg/swagger-ui"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,19 +26,17 @@ import (
 
 	"go-service-template/internal/config"
 	"go-service-template/internal/db"
-	"go-service-template/internal/db/sqlc/storage"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	echoSwagger "github.com/swaggo/echo-swagger"
 
 	userrepo "go-service-template/internal/repository/user"
 	userservice "go-service-template/internal/service/user"
 	userhandler "go-service-template/internal/transport/http/v1/user"
 
-	_ "go-service-template/docs"
+	custommiddleware "go-service-template/internal/transport/http/middleware"
 )
 
 type App struct {
@@ -63,17 +67,32 @@ func New(ctx context.Context, cfg *config.Config, l *slog.Logger) (*App, error) 
 		return nil, err
 	}
 
-	queries := storage.New(a.dbPool)
-	userRepo := userrepo.New(queries)
-	userService := userservice.New(userRepo)
+	jwtManager := jwt.NewManager(a.cfg.JWT.Secret, time.Hour)
+
+	userRepo := userrepo.New(a.dbPool)
+	userService := userservice.New(userRepo, jwtManager)
 	userHandler := userhandler.New(userService)
 
-	a.initEcho()
+	if err := a.initEcho(); err != nil {
+		return nil, err
+	}
 
 	apiGroup := a.e.Group("/api/v1")
-	userGroup := apiGroup.Group("/user")
 
-	userHandler.Setup(userGroup)
+	strictMiddlewares := []v1.StrictMiddlewareFunc{
+		custommiddleware.StrictErrorMiddleware,
+	}
+
+	strictServer := server.New(userHandler)
+	strictHandler := v1.NewStrictHandler(strictServer, strictMiddlewares)
+
+	oapiValidationMiddleware, err := custommiddleware.OpenAPIValidationMiddleware(jwtManager)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create OpenAPI validation middleware: %w", err)
+	}
+	apiGroup.Use(oapiValidationMiddleware)
+
+	v1.RegisterHandlers(apiGroup, strictHandler)
 
 	return a, nil
 }
@@ -136,11 +155,15 @@ func (a *App) migrateDB() error {
 }
 
 // initEcho sets up a new Echo instance with logger
-func (a *App) initEcho() {
+func (a *App) initEcho() error {
 	a.e = echo.New()
 	a.e.HideBanner = true
 	a.e.HidePort = true
-	a.e.Pre(middleware.RemoveTrailingSlash())
+	a.e.Pre(middleware.RemoveTrailingSlashWithConfig(middleware.TrailingSlashConfig{
+		Skipper: func(c echo.Context) bool {
+			return strings.HasPrefix(c.Request().URL.Path, "/api/v1/swagger")
+		},
+	}))
 	a.e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogStatus:   true,
 		LogURI:      true,
@@ -167,10 +190,28 @@ func (a *App) initEcho() {
 		},
 	}))
 	a.e.Use(middleware.Recover())
-	a.e.GET("/api/v1/docs/*", echoSwagger.WrapHandler)
-	a.e.GET("/api/v1/docs", func(c echo.Context) error {
-		return c.Redirect(http.StatusMovedPermanently, "/api/v1/docs/index.html")
+
+	a.e.GET("/api/v1/openapi.json", func(c echo.Context) error {
+		spec, err := v1.GetSwagger()
+		if err != nil {
+			slog.Error("failed to get swagger spec", "error", err)
+			return echo.NewHTTPError(http.StatusInternalServerError, errorz.ErrInternalServerError.Error())
+		}
+		return c.JSON(http.StatusOK, spec)
 	})
+
+	swaggerUIHandler, err := swaggerui.Handler()
+	if err != nil {
+		return fmt.Errorf("failed to get swagger ui handler: %w", err)
+	}
+
+	uiHandler := http.StripPrefix("/api/v1/swagger", swaggerUIHandler)
+	a.e.GET("/api/v1/swagger/*", echo.WrapHandler(uiHandler))
+	a.e.GET("/api/v1/swagger", func(c echo.Context) error {
+		return c.Redirect(http.StatusMovedPermanently, "/api/v1/swagger/")
+	})
+
+	return nil
 }
 
 // initS3 creates an S3 client and tries to create bucket in the storage

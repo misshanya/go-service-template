@@ -10,6 +10,7 @@ type Config struct {
 	S3       s3
 	Kafka    kafka
 	Valkey   valkey
+	JWT      jwt
 }
 
 type httpServer struct {
@@ -38,6 +39,10 @@ type kafka struct {
 type valkey struct {
 	Addr     string `env:"VALKEY_ADDR"`
 	Password string `env:"VALKEY_PASSWORD"`
+}
+
+type jwt struct {
+	Secret string `env:"JWT_SECRET" env-default:"secret"`
 }
 
 func New() (*Config, error) {

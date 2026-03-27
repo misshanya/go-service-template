@@ -32,6 +32,8 @@
             sqlc
             goose
             go-swag
+            oapi-codegen
+            go-task
           ];
 
           shellHook = ''

@@ -152,7 +152,10 @@ func (a *App) initDB(ctx context.Context) error {
 
 // migrateDB performs a migration to ensure the schema is up to date
 func (a *App) migrateDB() error {
-	return db.Migrate(sql.OpenDB(stdlib.GetConnector(*a.dbPool.Config().ConnConfig)))
+	conn := sql.OpenDB(stdlib.GetConnector(*a.dbPool.Config().ConnConfig))
+	defer conn.Close()
+
+	return db.Migrate(conn)
 }
 
 // initEcho sets up a new Echo instance with logger

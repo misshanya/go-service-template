@@ -75,6 +75,8 @@
 
 ### API
 
-#### Swagger docs
+- Swagger runs on `/api/v1/swagger`
+
+#### OpenAPI codegen
 
 - Generate code from OpenAPI spec with `oapi-codegen -config oapi-codegen.yml api/openapi.yaml`

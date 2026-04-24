@@ -42,7 +42,7 @@ type valkey struct {
 }
 
 type jwt struct {
-	Secret string `env:"JWT_SECRET" env-default:"secret"`
+	Secret string `env:"JWT_SECRET" env-required:"true"`
 }
 
 func New() (*Config, error) {

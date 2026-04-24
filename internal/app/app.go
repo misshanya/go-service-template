@@ -5,15 +5,16 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
+	"strings"
+	"time"
+
 	"go-service-template/internal/errorz"
 	"go-service-template/internal/jwt"
 	"go-service-template/internal/transport/http/server"
 	v1 "go-service-template/internal/transport/http/v1"
 	swaggerui "go-service-template/pkg/swagger-ui"
-	"log/slog"
-	"net/http"
-	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -111,13 +112,13 @@ func (a *App) Stop(ctx context.Context) error {
 
 	var stopErr error
 
-	a.l.Info("Closing database pool...")
-	a.dbPool.Close()
-
 	a.l.Info("Stopping http server...")
 	if err := a.e.Shutdown(ctx); err != nil {
 		stopErr = errors.Join(stopErr, fmt.Errorf("failed to shutdown http server: %w", err))
 	}
+
+	a.l.Info("Closing database pool...")
+	a.dbPool.Close()
 
 	if stopErr != nil {
 		return stopErr

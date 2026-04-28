@@ -130,12 +130,17 @@ func (a *App) Stop(ctx context.Context) error {
 
 // initDB initializes a new pool for PostgreSQL db
 func initDB(ctx context.Context, dbURL string, maxConns int32) (*pgxpool.Pool, error) {
-	pool, err := pgxpool.New(ctx, dbURL)
+	cfg, err := pgxpool.ParseConfig(dbURL)
 	if err != nil {
 		return nil, err
 	}
 
-	pool.Config().MaxConns = maxConns
+	cfg.MaxConns = maxConns
+
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		return nil, err
+	}
 
 	return pool, nil
 }

@@ -177,6 +177,7 @@ func (a *App) initEcho() error {
 		LogStatus:   true,
 		LogURI:      true,
 		LogError:    true,
+		LogRemoteIP: true,
 		HandleError: true,
 		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
 			if v.Error == nil {
